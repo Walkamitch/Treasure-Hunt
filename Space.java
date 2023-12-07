@@ -28,7 +28,6 @@ public class Space {
     }
 
 
-
     public String getConsoleStr() {
         if (occupant == null) {
             return "-";

@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
 
 public class Board {
     private Random rand;
@@ -9,11 +6,30 @@ public class Board {
     private ArrayList<Treasure> remainingTreasures;
     private int gazooRow;
     private int gazooCol;
-    private Explorer gazoo;
+    private LivingThing gazoo;
+    private boolean isHero;
+
     //sub that creates a board and everything in it
     public Board(int numRows, int numCols) {
         board = new ArrayList<>();
+        Scanner scanner = new Scanner(System.in);
 
+        System.out.print("type E for Explorer and H For Hero: ");
+        char c = scanner.next().charAt(0);
+        switch (Character.toLowerCase(c)) {
+            case 'e':
+                gazoo = new Explorer("Gazoo", 20, ConsoleColors.GREEN);
+                isHero = false;
+                break;
+            case 'h':
+                gazoo = new Hero("Gazoo", 20, ConsoleColors.GREEN);
+                isHero = true;
+                break;
+            default:
+                gazoo = new Explorer("Gazoo", 20, ConsoleColors.GREEN);
+                isHero = false;
+                break;
+        }
         for (int i = 0; i < numRows; i++) {
             ArrayList<Space> row = new ArrayList<>();
             board.add(row);
@@ -23,7 +39,8 @@ public class Board {
             }
         }
 
-        gazoo = new Explorer("Gazoo", 20, ConsoleColors.GREEN);
+
+
         gazooRow = 0;
         gazooCol = 0;
         board.get(gazooRow).get(gazooCol).setOccupant(gazoo);
@@ -38,6 +55,38 @@ public class Board {
             placeRandomly(treasure);
         }
     }
+    public LivingThing fight(LivingThing lt1, LivingThing lt2) {
+        // Check if lt1 and lt2 are not null and both are alive
+        while (lt1 != null && lt2 != null && !lt1.isDead() && !lt2.isDead()) {
+            int damage = 0;
+
+            if (lt1 instanceof Fighter) {
+                damage = ((Fighter) lt1).hurt(lt2);
+                System.out.println(lt1.getName() + " applies " + damage + " damage to " + lt2.getName());
+                // Pause for half a second here
+            }
+
+            if (!lt2.isDead() && lt2 instanceof Fighter) {
+                damage = ((Fighter) lt2).hurt(lt1);
+                System.out.println(lt2.getName() + " applies " + damage + " damage to " + lt1.getName());
+                // Pause for half a second here
+            }
+        }
+
+        LivingThing winner = lt1.isDead() ? lt2 : lt1;
+        LivingThing loser = lt1.isDead() ? lt1 : lt2;
+        System.out.println(winner.getName() + " had defeated " + loser.getName());
+        if(!lt1.isDead() && lt1 instanceof Fighter){
+            Treasure treasure = new Treasure(10, lt2.getName() + "'s Bounty", ConsoleColors.YELLOW);
+            ((Explorer)gazoo).addTreasure(treasure);
+            System.out.println("Gazoo gained " + treasure.getDescription() + " worth " + treasure.getValue());
+        }
+
+        return winner;
+    }
+
+
+
 
     //sub that provides movement controls of gazoo
     public boolean move(char m) {
@@ -46,14 +95,19 @@ public class Board {
             System.out.println("Game Over!");
             return false;
         }
+
         int newGazooRow = gazooRow;
         int newGazooCol = gazooCol;
         //if r is used as a response it reveals the whole board
         if (m == 'r') {
             printBoard(true);
         } else if (m == 'i') {
-            System.out.println("Number of treasures found: " + gazoo.getTreasures().size());
-            System.out.println("Total value of treasures: " + gazoo.getTreasureValue());
+            ArrayList<Treasure> treasures = ((Explorer)gazoo).getTreasures();
+            for (int i = 0; i < treasures.size(); i++) {
+                System.out.println(treasures.get(i).getDescription() + ": " + treasures.get(i).getValue());
+            }
+            System.out.println("Number of treasures found: " + treasures.size());
+            System.out.println("Total value of treasures: " + ((Explorer)gazoo).getTreasureValue());
         }
         //case statement for different keyboard inputs for movement of gazoo
         switch (Character.toLowerCase(m)) {
@@ -80,12 +134,20 @@ public class Board {
         //checks if gazoo touches monster if so gazoo gets hurt
         if (occupant != null) {
             if (occupant instanceof Monster) {
-                int newHealth = Monster.hurt((this.gazoo));
-                System.out.println("Gazoo Encountered " + occupant.getName() + " and lost " + ((Monster) occupant).getDamage() + " health and now has " + gazoo.getHealth() + " Health.");
-                if (newHealth <= 0) {
-                    System.out.println("Gazoo has died!");
-                    endGame();
+                Monster monster = (Monster) occupant; // Cast occupant to Monster
+                if(gazoo instanceof Hero){
+
+                    fight(gazoo, monster);
+                }else if(gazoo instanceof Explorer) {
+                    int newHealth = monster.hurt(gazoo); // Call hurt method on the Monster instance
+                    System.out.println("Gazoo Encountered " + occupant.getName() + " and lost " + monster.getDamage() + " health and now has " + gazoo.getHealth() + " Health.");
+                    if (newHealth <= 0) {
+                        System.out.println("Gazoo has died!");
+                        endGame();
+                    }
                 }
+
+
             } else if (occupant instanceof Healer) {
                 int newHealth = ((Healer) occupant).hurt(gazoo);
                 System.out.println("Gazoo healed by " + ((Healer) occupant).getHealValue() + " health points and now has " + gazoo.getHealth() + " Health.");
@@ -93,10 +155,11 @@ public class Board {
 
             board.get(newGazooRow).get(newGazooCol).setOccupant(gazoo);
         }
+
         //adds treasures to board
         if (board.get(newGazooRow).get(newGazooCol).getCache() != null) {
             Treasure treasure = board.get(newGazooRow).get(newGazooCol).getCache();
-            gazoo.addTreasure(treasure);
+            ((Explorer)gazoo).addTreasure(treasure);
             remainingTreasures.remove(treasure);
             board.get(newGazooRow).get(newGazooCol).setCache(null);
 
@@ -127,8 +190,8 @@ public class Board {
     //if game ends this is called
     public void endGame() {
         System.out.println("Game Over!");
-        System.out.println("Number of treasures found: " + gazoo.getTreasures().size());
-        System.out.println("Total value of treasures: " + gazoo.getTreasureValue());
+        System.out.println("Number of treasures found: " + ((Explorer)gazoo).getTreasures().size());
+        System.out.println("Total value of treasures: " + ((Explorer)gazoo).getTreasureValue());
         System.exit(0);
     }
     //checks if the move is not out of bounds
@@ -201,12 +264,9 @@ public class Board {
 
     public static void main(String[] args) {
         Board board = new Board(8, 9);
-
         board.printBoard(false);
         System.out.println();
-
         Scanner scanner = new Scanner(System.in);
-
         while (true) {
             System.out.print("Enter a move (w/a/s/d to move Gazoo, q to quit): ");
             char move = scanner.next().charAt(0);
@@ -233,4 +293,8 @@ public class Board {
             return true;
         }
     }
+
+
+
+
 }

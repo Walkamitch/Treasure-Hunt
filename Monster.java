@@ -1,6 +1,6 @@
 import java.util.ArrayList;
 
-public class Monster extends LivingThing {
+public class Monster extends LivingThing implements Fighter {
 
     private static int damage;
 
@@ -12,14 +12,15 @@ public class Monster extends LivingThing {
     public int getDamage() {
         return damage;
     }
-
-    public static int hurt(LivingThing e) {
-
-        int currentHealth = e.getHealth();
-        currentHealth -= damage;
-        e.setHealth(currentHealth);
-
-        return currentHealth;
+    @Override
+    public int hurt(LivingThing opponent) {
+        int currentHealth = opponent.getHealth();
+        int damageApplied = getDamage(); // Assuming getDamage() retrieves the damage value for this monster
+        currentHealth -= damageApplied;
+        opponent.setHealth(currentHealth);
+        return damageApplied;
     }
+
+
 
 }

@@ -4,6 +4,9 @@ public class LivingThing {
     private Integer health;
     private String pieceColor;
 
+    public LivingThing() {
+        this(new Hero("DefaultHero", 20, ConsoleColors.GREEN));
+    }
 
     public LivingThing(String name, int health, String color) {
         this.name = name;
@@ -11,7 +14,19 @@ public class LivingThing {
         setPieceColor(color);
 
     }
+    public LivingThing(Explorer explorer) {
+        this.name = explorer.getName();
+        this.health = explorer.getHealth();
+        this.pieceColor = explorer.getPieceColor();
+    }
 
+    public boolean isDead() {
+        if(health <= 0) {
+            return true;
+        }else{
+            return false;
+        }
+    }
     public LivingThing(String name, int health) {
         this.name = name;
         setHealth(health);
